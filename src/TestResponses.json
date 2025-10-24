@@ -1,0 +1,88 @@
+
+{
+    "avgResponse": {
+        "question": {
+            "type": "single",
+            "text": "Do you have high cholesterol or abnormal blood lipid levels?",
+            "extras": {},
+            "items": [
+                {
+                    "id": "p_719",
+                    "name": "Diagnosed dyslipidemia",
+                    "choices": [
+                        {
+                            "id": "present",
+                            "label": "Yes"
+                        },
+                        {
+                            "id": "absent",
+                            "label": "No"
+                        },
+                        {
+                            "id": "unknown",
+                            "label": "Don't know"
+                        }
+                    ]
+                }
+            ]
+        },
+        "conditions": [
+            {
+                "id": "c_140",
+                "name": "Myocardial infarction",
+                "common_name": "Heart attack",
+                "probability": 0.5392
+            },
+            {
+                "id": "c_948",
+                "name": "Shoulder impingement syndrome",
+                "common_name": "Shoulder impingement syndrome",
+                "probability": 0.2316
+            }
+        ],
+        "extras": {},
+        "has_emergency_evidence": false,
+        "should_stop": false,
+        "interview_token": "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJQYXRpZW50RWR1Y2F0aW9uUmV2aXNpb25zIiwidG9rZW5QYXlsb2FkIjp7ImFnZUJ1bmRsZSI6ImFkdWx0IiwicGF0aWVudEVkdWNhdGlvblJldmlzaW9ucyI6eyJjXzE0MCI6IjIifX0sImlhdCI6MTc2MTI3MTExOH0.MrjOhTRP0CoKbYO9LGKwjFbYsc2FWxddAREGqfk0nNk"
+    },
+
+    "shouldStopResponse": {
+        "question": {
+            "type": "single",
+            "text": "Has your tongue, inside of your mouth, or the skin around your lips, or nose recently turned blue or grey?",
+            "extras": {},
+            "items": [
+                {
+                    "id": "s_3294",
+                    "name": "Central cyanosis",
+                    "choices": [
+                        {
+                            "id": "present",
+                            "label": "Yes"
+                        },
+                        {
+                            "id": "absent",
+                            "label": "No"
+                        },
+                        {
+                            "id": "unknown",
+                            "label": "Don't know"
+                        }
+                    ]
+                }
+            ]
+        },
+        "conditions": [
+            {
+                "id": "c_140",
+                "name": "Myocardial infarction",
+                "common_name": "Heart attack",
+                "probability": 0.921
+            }
+        ],
+        "extras": {},
+        "has_emergency_evidence": true,
+        "should_stop": true,
+        "interview_token": "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJQYXRpZW50RWR1Y2F0aW9uUmV2aXNpb25zIiwidG9rZW5QYXlsb2FkIjp7ImFnZUJ1bmRsZSI6InNlbmlvciIsInBhdGllbnRFZHVjYXRpb25SZXZpc2lvbnMiOnsiY18xNDAiOiIyIn19LCJpYXQiOjE3NjEyNzE0NTB9.-yoGemBrtXSi1Yd4e0dKzOZUSDKSPGDPzUITNZmC5nA"
+    }
+}
