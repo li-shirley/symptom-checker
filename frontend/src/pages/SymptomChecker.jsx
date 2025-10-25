@@ -1,26 +1,34 @@
-import React, { createContext, useState, useCallback } from "react";
+import React, { createContext, useState, useCallback, useMemo } from "react";
 import axios from "axios";
-import '../../styles/App.css';      
-import logo from '../../assets/images/logo.jpg';
-import SearchBar from "../../components/SymptomChecker/SearchBar";
-import SexInput from "../../components/SymptomChecker/SexInput";
-import AgeInput from "../../components/SymptomChecker/AgeInput";
-import Question from "../../components/SymptomChecker/Question";
-import Results from "../../components/SymptomChecker/Results";
-import Intro from "../../components/SymptomChecker/Intro";
-import Disclaimer from "../../components/SymptomChecker/Disclaimer";
+import '../styles/App.css';      
+import logo from '../assets/images/logo.jpg';
+import SearchBar from "../components/SymptomChecker/SearchBar";
+import SexInput from "../components/SymptomChecker/SexInput";
+import AgeInput from "../components/SymptomChecker/AgeInput";
+import Question from "../components/SymptomChecker/Question";
+import Results from "../components/SymptomChecker/Results";
+import Intro from "../components/SymptomChecker/Intro";
+import Disclaimer from "../components/SymptomChecker/Disclaimer";
 
 //for testing
-import symptomData from '../../Data.json'; 
+import symptomData from '../Data.json'; 
 
 
 
 export const MyContext = createContext();
 
-function SymptomCheckerPage() {
+function SymptomChecker() {
+
+    const headers = {
+        "Content-Type": "application/json",
+        "App-Key": process.env.REACT_APP_API_KEY,
+        "App-Id": process.env.REACT_APP_API_ID,
+    };
+
+
     // State
     const [age, setAge] = useState("");
-    const [ageErr, setAgeErr] = useState(true);
+    const [ageErr, setAgeErr] = useState("");
     const [sex, setSex] = useState("male");
     const [tags, setTags] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
@@ -33,10 +41,14 @@ function SymptomCheckerPage() {
 
     // Handlers
     const handleAge = (e) => {
-        setAge(e.target.value);
-        if (e.target.value <= 0) setAgeErr("Age is required.");
-        else if (e.target.value % 1 !== 0) setAgeErr("Age must be a whole number");
-        else if (e.target.value > 119) setAgeErr("Age inputted exceeds max age.");
+        const value = e.target.value;
+        setAge(value);
+
+        const num = Number(value);
+        if (!value) setAgeErr("Age is required.");
+        else if (!Number.isInteger(num)) setAgeErr("Age must be a whole number.");
+        else if (num <= 0) setAgeErr("Age must be greater than 0.");
+        else if (num > 119) setAgeErr("Age exceeds max allowed (119).");
         else setAgeErr("");
     };
 
@@ -80,7 +92,7 @@ function SymptomCheckerPage() {
     }, []);
 
 
-    const onAddition = useCallback((newTag) => {
+    const onAdd = useCallback((newTag) => {
         setTags(prevTags => [...prevTags, newTag]);
         setEvidence(prevEvidence => [
             ...prevEvidence, 
@@ -89,17 +101,12 @@ function SymptomCheckerPage() {
     }, []);
 
     const handleFirstSubmit = (age, sex, evidence) => {
-        const header = {
-        "Content-Type": "application/json",
-        "App-Key": process.env.REACT_APP_API_KEY,
-        "App-Id": process.env.REACT_APP_API_ID
-        };
         axios.post('https://api.infermedica.com/v3/diagnosis', {
         "age": { "value": age },
         "sex": sex,
         "evidence": evidence,
         "extras": { "disable_groups": true }
-        }, { headers: header })
+        }, { headers: headers })
         .then(res => {
             setQuestion(res.data.question);
             setStep(prevStep => prevStep + 1); // move to Questions
@@ -107,18 +114,13 @@ function SymptomCheckerPage() {
         .catch(err => console.log(err.response));
     };
 
-    const handleQuestionSubmit = (evidenceArr) => {
-        const header = {
-        "Content-Type": "application/json",
-        "App-Key": process.env.REACT_APP_API_KEY,
-        "App-Id": process.env.REACT_APP_API_ID
-        };
+    const handleFollowUpQuestionSubmit = (evidenceArr) => {
         axios.post('https://api.infermedica.com/v3/diagnosis', {
         age: { value: age },
         sex,
         evidence: evidenceArr,
         extras: { disable_groups: true }
-        }, { headers: header })
+        }, { headers: headers })
         .then(res => {
             if (res.data.should_stop) getCondition(res.data.conditions[0].id);
             else {
@@ -130,12 +132,7 @@ function SymptomCheckerPage() {
     };
 
     const getCondition = (id) => {
-        const header = {
-        "Content-Type": "application/json",
-        "App-Key": process.env.REACT_APP_API_KEY,
-        "App-Id": process.env.REACT_APP_API_ID
-        };
-        axios.get(`https://api.infermedica.com/v3/conditions/${id}?age.value=${age}`, { headers: header })
+        axios.get(`https://api.infermedica.com/v3/conditions/${id}?age.value=${age}`, { headers: headers })
         .then(res => {
             setResults(res.data);
             setStep(prevStep => prevStep + 1); // move to Results
@@ -143,54 +140,53 @@ function SymptomCheckerPage() {
         .catch(err => console.log(err.response));
     };
 
+    const handleRestart = useCallback(() => {
+        setStep(0);
+        setEvidence([]);
+        setTags([]);
+        setQuestion({});
+        setBroadConditions(null);
+        setPresent("present");
+        setResults({});
+    }, []);
+
     // Step Components
     const steps = [
-        <Intro />,
-        <Disclaimer />,
-        <AgeInput getSymptoms={getSymptoms} />,
-        <SexInput />,
-        <SearchBar handleFirstSubmit={handleFirstSubmit} />,
-        <Question handleQuestionSubmit={handleQuestionSubmit} />,
-        <Results />
+        <Intro />, //0
+        <Disclaimer />, //1
+        <AgeInput getSymptoms={getSymptoms} />, //2
+        <SexInput />, //3
+        <SearchBar handleFirstSubmit={handleFirstSubmit} />, //4
+        <Question handleFollowUpQuestionSubmit={handleFollowUpQuestionSubmit} />, //5
+        <Results /> //6
     ];
 
-      // 👇 ADD THIS HERE, before the return
-    console.log("Current step index:", step);
-    console.log("Step component:", steps[step]);
+    const contextValue = useMemo(() => ({
+        age, setAge,
+        ageErr, setAgeErr,
+        sex, setSex,
+        tags, setTags,
+        suggestions, setSuggestions,
+        evidence, setEvidence,
+        handleAge, onDelete, onAdd,
+        question, present, setPresent,
+        results, broadConditions,
+        step, setStep, handleRestart
+    }), [
+        age, ageErr, sex, tags, suggestions, evidence,
+        question, present, results, broadConditions, step,
+        handleRestart, onAdd, onDelete
+    ]);
 
     return (
-        <MyContext.Provider value={{
-            age, setAge,
-            ageErr, setAgeErr,
-            sex, setSex,
-            tags, setTags,
-            suggestions, setSuggestions,
-            evidence, setEvidence,
-            handleAge, onDelete, onAddition,
-            question, present, setPresent,
-            results, broadConditions,
-            step, setStep
-        }}>
 
-        <div className="container w-50 shadow p-3 my-5 bg-body rounded-3 text-center p-5 border border-5">
+    <MyContext.Provider value={contextValue}>
+        <div className="container w-50 shadow p-3 my-5 bg-body rounded-3 text-center p-5 border border-5" style={{ minHeight: "50vh" }}>
             <img src={logo} alt="logo" style={{ width: "60%" }} />
-            
-            {/* Display current step */}
             {steps[step]}
-            
-            {/* // Back/Next buttons for testing or navigation */}
-            {/* <div className="mt-3">
-            {step > 0 && step !== steps.length - 1 && (
-                <button className="btn btn-secondary me-2" onClick={() => setStep(step - 1)}>Back</button>
-            )} */}
-            {/* Next button only if you want manual progression (can remove if handled in handlers) */}
-            {/* {step < steps.length - 1 && step !== 2 && step !== 4 && (
-                <button className="btn btn-primary" onClick={() => setStep(prevStep => prevStep + 1)}>Next</button>
-            )}
-            </div> */}
         </div>
-        </MyContext.Provider>
+    </MyContext.Provider>
     );
 }
 
-export default SymptomCheckerPage;
+export default SymptomChecker;

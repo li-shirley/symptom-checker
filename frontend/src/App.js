@@ -1,10 +1,11 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import SymptomCheckerPage from "./components/SymptomChecker/SymptomCheckerPage.jsx";
+import SymptomChecker from "./pages/SymptomChecker.jsx";
+
 
 function App() {
   return (
       <Routes>
-        <Route path="/symptom-check" element={<SymptomCheckerPage />} />
+        <Route path="/symptom-check" element={<SymptomChecker/>} />
       </Routes>
 
   );

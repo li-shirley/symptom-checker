@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import docImg from '../../assets/images/doc.jpeg';
-import { MyContext } from './SymptomCheckerPage';
+import { MyContext } from '../../pages/SymptomChecker';
+import StepNavigation from './StepNavigationButtons';
 
 const Intro = () => {
     const { setStep } = useContext(MyContext); 
@@ -17,12 +18,9 @@ const Intro = () => {
             In order to assess your symptoms, we will collect some basic information
             about you. All information will be kept anonymous.
         </h6>
-        <button
-            className="btn btn-primary mt-3"
-            onClick={() => setStep(prevStep => prevStep + 1)} // move to next step
-        >
-            Continue
-        </button>
+        <StepNavigation
+                onNext={() => setStep(prev => prev + 1)}
+            />
         </div>
     );
 };

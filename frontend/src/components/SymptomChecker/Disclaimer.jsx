@@ -1,10 +1,11 @@
 import React, { useContext } from 'react';
 import { MdEmergency } from "react-icons/md";
 import { RiHealthBookLine } from "react-icons/ri";
-import { MyContext } from './SymptomCheckerPage';
+import { MyContext } from '../../pages/SymptomChecker';
+import StepNavigation from './StepNavigationButtons';
 
 const Disclaimer = () => {
-    const { step, setStep } = useContext(MyContext);
+    const { setStep } = useContext(MyContext);
 
     return (
         <div>
@@ -21,18 +22,10 @@ const Disclaimer = () => {
         <MdEmergency size="2em" />
         <p>By clicking "continue" you agree to the above conditions.</p>
 
-        <button
-            className="btn btn-secondary me-3 mt-3"
-            onClick={() => setStep(prevStep => prevStep - 1)} // back to Intro
-        >
-            Back
-        </button>
-        <button
-            className="btn btn-primary mt-3"
-            onClick={() => setStep(prevStep => prevStep + 1)} // move to AgeInput
-        >
-            Continue
-        </button>
+        <StepNavigation
+                onBack={() => setStep(prev => prev - 1)}
+                onNext={() => setStep(prev => prev + 1)}
+            />
         </div>
     );
 };
