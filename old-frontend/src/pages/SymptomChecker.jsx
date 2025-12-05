@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback, useMemo } from "react";
+import React, { createContext, useState, useCallback, useMemo,} from "react";
 import axios from "axios";
 import '../styles/App.css';      
 import logo from '../assets/images/logo.jpg';
@@ -13,18 +13,9 @@ import Disclaimer from "../components/SymptomChecker/Disclaimer";
 //for testing
 import symptomData from '../Data.json'; 
 
-
-
 export const MyContext = createContext();
 
-function SymptomChecker() {
-
-    const headers = {
-        "Content-Type": "application/json",
-        "App-Key": process.env.REACT_APP_API_KEY,
-        "App-Id": process.env.REACT_APP_API_ID,
-    };
-
+const SymptomChecker = () => {
 
     // State
     const [age, setAge] = useState("");
@@ -50,6 +41,12 @@ function SymptomChecker() {
         else if (num <= 0) setAgeErr("Age must be greater than 0.");
         else if (num > 119) setAgeErr("Age exceeds max allowed (119).");
         else setAgeErr("");
+    };
+
+    const headers = {
+        "Content-Type": "application/json",
+        "App-Key": process.env.REACT_APP_API_KEY,
+        "App-Id": process.env.REACT_APP_API_ID,
     };
 
     // const getSymptoms = () => {

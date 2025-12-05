@@ -3,6 +3,8 @@
 # Node dependencies
 /frontend/node_modules/
 /backend/node_modules/
+# todo: delete this once new frontend replaces old
+/old-frontend/node_modules/
 /.pnp
 .pnp.js
 
