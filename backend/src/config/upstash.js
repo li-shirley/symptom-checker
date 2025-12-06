@@ -14,14 +14,14 @@ const redis = new Redis({
 });
 
 // limiter for protected routes (user id & IP-based)
-export const protectedRatelimit = new Ratelimit({
+export const authRatelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(100, "15 m"),
     analytics: true,
 });
 
 // public routes limiter (IP-based)
-export const publicRatelimit = new Ratelimit({
+export const guestRatelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(5, "1 m"),
     analytics: true,

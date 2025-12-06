@@ -1,10 +1,10 @@
-import { publicRatelimit } from "../config/upstash.js";
+import { guestRatelimit } from "../config/upstash.js";
 
-const publicRateLimiter = async (req, res, next) => {
+const guestRateLimiter = async (req, res, next) => {
     try {
         const key = req.ip; // IP-based for login/signup
 
-        const { success } = await publicRatelimit.limit(key);
+        const { success } = await guestRatelimit.limit(key);
 
         if (!success) {
             return res.status(429).json({
@@ -14,9 +14,9 @@ const publicRateLimiter = async (req, res, next) => {
 
         next();
     } catch (error) {
-        console.error("Public rate limit error:", error);
+        console.error("Rate limit error:", error);
         next(error);
     }
 };
 
-export default publicRateLimiter;
+export default guestRateLimiter;

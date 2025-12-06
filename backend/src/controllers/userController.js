@@ -1,5 +1,10 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import validator from 'validator';
+
+import Triage from '../models/Triage.js';
+
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -21,11 +26,12 @@ const createRefreshToken = (_id) => {
 
 // signup user
 export const signupUser = async (req, res) => {
-    const { email, password } = req.body
+    const { email, password, birthDate, sex } = req.body;
+
     const emailNormalized = email.trim().toLowerCase();
 
     try {
-        const user = await User.signup(emailNormalized, password)
+        const user = await User.signup(emailNormalized, password, birthDate, sex)
 
         // create tokens
         const accessToken = createToken(user._id)
@@ -44,7 +50,13 @@ export const signupUser = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
 
-        res.status(201).json({ email, token: accessToken })
+        res.status(201).json({
+            email,
+            token: accessToken,
+            birthDate: user.birthDate,
+            sex: user.sex,
+            age: user.age,
+        })
     } catch (error) {
         res.status(400).json({ error: error.message })
     }
@@ -72,7 +84,13 @@ export const loginUser = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
 
-        res.status(200).json({ email, token: accessToken })
+        res.status(200).json({
+            email,
+            token: accessToken,
+            birthDate: user.birthDate,
+            sex: user.sex,
+            age: user.age,
+        })
     } catch (error) {
         res.status(400).json({ error: error.message })
     }
@@ -126,8 +144,76 @@ export const logoutUser = async (req, res) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? "none" : "lax",
-        path: "/",  
+        path: "/",
     });
 
     res.sendStatus(204);
+};
+
+// delete user
+export const deleteUser = async (req, res) => {
+    const { currentPassword } = req.body;
+
+    if (!currentPassword) {
+        return res.status(400).json({ error: "Password is required to delete account" });
+    }
+
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Verify password
+        const match = await bcrypt.compare(currentPassword, user.password);
+        if (!match) {
+            return res.status(400).json({ error: "Password is incorrect" });
+        }
+
+        // Delete all triage records for this user
+        await Triage.deleteMany({ userId: user._id });
+
+        // Delete user from DB
+        await User.findByIdAndDelete(user._id);
+
+        // Clear refresh token cookie using logoutUser helper
+        await logoutUser(req, res);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to delete account" });
+    }
+};
+
+// change password
+export const changePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        const user = await User.findById(req.user._id);
+
+        // verify current password matches hashed one in DB
+        const match = await bcrypt.compare(currentPassword, user.password);
+        if (!match) return res.status(400).json({ error: "Current password is incorrect" });
+
+        // check if new password is same as current (check hashed version in case of white space)
+        const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) return res.status(400).json({ error: "New password cannot be the same as the current password" });
+
+        // validate new password strength
+        if (newPassword.length < 8 || !validator.isStrongPassword(newPassword)) {
+            return res.status(400).json({ error: "New password is not strong enough" });
+        }
+
+        const salt = await bcrypt.genSalt(12);
+        user.password = await bcrypt.hash(newPassword, salt);
+
+        await user.save();
+
+        res.status(200).json({ message: "Password updated successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to change password" });
+    }
 };

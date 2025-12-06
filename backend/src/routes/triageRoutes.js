@@ -1,7 +1,13 @@
 import express from 'express';
+
 import { getAllTriages, getOneTriage, createTriage, updateTriage, deleteTriage } from '../controllers/triageController.js';
 
+import authRateLimiter from "../middleware/authRateLimiter.js";
+import requireAuth from '../middleware/requireAuth.js';
+
 const router = express.Router()
+
+router.use(requireAuth, authRateLimiter);
 
 // get all 
 router.get("/", getAllTriages);

@@ -1,4 +1,4 @@
-const errorHandler = (err, _, res, _) => {
+const errorHandler = (err, _, res) => {
     console.error(err.stack); // server-side logging only
 
     res.status(err.status || 500).json({

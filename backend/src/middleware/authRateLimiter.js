@@ -1,6 +1,6 @@
-import { protectedRatelimit } from "../config/upstash.js";
+import { authRatelimit } from "../config/upstash.js";
 
-const protectedRateLimiter = async (req, res, next) => {
+const authRateLimiter = async (req, res, next) => {
     try {
         if (!req.user?._id) {
             return res.status(401).json({ error: "Unauthorized" });
@@ -12,7 +12,7 @@ const protectedRateLimiter = async (req, res, next) => {
         // Combine userId and IP for extra security if token leaks
         const key = `${userId}:${ip}`;
 
-        const { success } = await protectedRatelimit.limit(key);
+        const { success } = await authRatelimit.limit(key);
 
         if (!success) {
             return res.status(429).json({
@@ -27,4 +27,4 @@ const protectedRateLimiter = async (req, res, next) => {
     }
 };
 
-export default protectedRateLimiter;
+export default authRateLimiter;

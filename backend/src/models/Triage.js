@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const TriageRecordSchema = new mongoose.Schema(
+const TriageSchema = new mongoose.Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -38,4 +38,4 @@ const TriageRecordSchema = new mongoose.Schema(
     { timestamps: true }   // adds createdAt & updatedAt
 );
 
-export default mongoose.model("TriageRecord", TriageRecordSchema);
+export default mongoose.model("Triage", TriageSchema);

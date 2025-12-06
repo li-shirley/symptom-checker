@@ -12,8 +12,7 @@ import userRoutes from "./routes/userRoutes.js"
 import logger from "./middleware/logger.js"
 import requireAuth from './middleware/requireAuth.js';
 import errorHandler from './middleware/errorHandler.js';
-import protectedRateLimiter from "./middleware/protectedRateLimiter.js";
-import publicRateLimiter from "./middleware/publicRateLimiter.js";
+import authRateLimiter from "./middleware/authRateLimiter.js";
 
 dotenv.config();
 
@@ -35,9 +34,10 @@ app.use(helmet());
 app.use(cookieParser());
 app.use(logger);
 
-// Route handlers: triage (protected) and user (public)
-app.use("/api/triage", requireAuth, protectedRateLimiter, triageRoutes);
-app.use("/api/user", publicRateLimiter, userRoutes);
+// Route handlers:
+// Note rateLimiter & requireAuth middleware applied in routes file due to having a mix of auth & guest routes.
+app.use("/api/triage", triageRoutes);
+app.use("/api/user", userRoutes); 
 
 // Post-route middleware: global error handling
 app.use(errorHandler);
