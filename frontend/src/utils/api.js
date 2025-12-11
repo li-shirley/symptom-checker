@@ -1,4 +1,3 @@
-// utils/api.js
 import api from "./axios.js";
 
 /**
@@ -16,6 +15,17 @@ export const apiRequest = async (
     { user, refreshToken } = {},
     retry = true
 ) => {
+    const requestId = Math.random().toString(36).slice(2, 8);
+    const caller = new Error().stack?.split("\n")[2]?.trim();
+
+    console.groupCollapsed(`🌐 API REQUEST [${requestId}]`);
+    console.log("Caller:", caller);
+    console.log("URL:", url);
+    console.log("Method:", method);
+    console.log("Body:", body);
+    console.log("Retry:", retry);
+    console.groupEnd();
+
     try {
         const headers = {
             ...customHeaders,
@@ -23,18 +33,36 @@ export const apiRequest = async (
         };
 
         const res = await api({ url, method, data: body, headers });
+
+        console.groupCollapsed(`✅ API RESPONSE [${requestId}]`);
+        console.log("Status:", res.status);
+        console.log("Data:", res.data);
+        console.groupEnd();
+
         return { success: true, status: res.status, data: res.data };
+
     } catch (err) {
-        // Handle 401: attempt token refresh once
+        console.groupCollapsed(`❌ API ERROR [${requestId}]`);
+        console.log("Status:", err.response?.status);
+        console.log("Response Data:", err.response?.data);
+        console.log("Error Message:", err.message);
+        console.log("Retry allowed:", retry);
+        console.groupEnd();
+
+        // 401 retry logic
         if (err.response?.status === 401 && retry && refreshToken) {
+            console.warn(`🔁 Retrying API REQUEST [${requestId}] after token refresh`);
             const newToken = await refreshToken();
             if (newToken) {
-                // retry request with updated token
-                return apiRequest(url, { method, body, headers: customHeaders }, { user: { ...user, token: newToken }, refreshToken }, false);
+                return apiRequest(
+                    url,
+                    { method, body, headers: customHeaders },
+                    { user: { ...user, token: newToken }, refreshToken },
+                    false
+                );
             }
         }
 
-        // Fallback: return structured error
         return {
             success: false,
             status: err.response?.status || 500,
@@ -42,3 +70,4 @@ export const apiRequest = async (
         };
     }
 };
+

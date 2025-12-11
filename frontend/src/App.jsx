@@ -1,8 +1,9 @@
 // App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthContext } from './hooks/useAuth.js';
+import { useAuthContext } from './hooks/useAuthContext.js';
 
 import HomePage from './pages/HomePage.jsx';
+import SymptomCheck from './pages/SymptomCheck.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import SymptomHistory from './pages/SymptomHistory.jsx';
@@ -31,12 +32,15 @@ const App = () => {
   const { user } = useAuthContext();
 
   return (
-    <div data-theme="pastel">
+    <div data-theme="lemonade">
       <Navbar />
 
       <Routes>
         {/* Home */}
         <Route path="/" element={<HomePage />} />
+
+        {/* Symptom Checker */}
+        <Route path="/check-symptoms" element={<SymptomCheck/>} />
 
         {/* Login & Signup */}
         <Route
