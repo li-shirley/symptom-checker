@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuthContext } from './useAuth';
+import { useAuthContext } from './useAuthContext';
 import { apiRequest } from '../utils/api';
 
 export const useSignup = () => {

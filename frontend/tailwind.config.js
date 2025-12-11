@@ -11,6 +11,6 @@ export default {
   },
   plugins: [daisyui],
   daisyui:{
-    themes: ["pastel"] // todo: add themes
+    themes: ["lemonade"] // todo: add themes
   }
 }

@@ -1,4 +1,4 @@
-import { useAuthContext } from './useAuth';
+import { useAuthContext } from './useAuthContext';
 import { apiRequest } from '../utils/api';
 
 export const useLogout = () => {

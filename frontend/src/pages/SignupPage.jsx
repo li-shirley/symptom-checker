@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff } from "lucide-react"
 
-import { useSignup } from '../hooks/useSignup'
+import { useSignup } from '../hooks/useSignupActions'
 
 const SignUpPage = () => {
     const { signup, isLoading, error: apiError } = useSignup();

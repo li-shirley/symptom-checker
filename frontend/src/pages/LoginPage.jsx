@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
-import { useLogin } from "../hooks/useLogin"
+import { useLogin } from "../hooks/useLoginActions"
 import { Link } from "react-router-dom"
 
 const LoginPage = () => {

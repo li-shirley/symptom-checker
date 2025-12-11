@@ -1,8 +1,8 @@
 // components/Navbar.jsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuthContext } from "../hooks/useAuth.js";
-import { useLogout } from "../hooks/useLogout.js";
+import { useAuthContext } from "../hooks/useAuthContext.js";
+import { useLogout } from "../hooks/useLogoutActions.js";
 import { Menu, X } from "lucide-react"; // lucide icons
 
 const MenuLinks = ({ isMobile, logout, user }) => (
