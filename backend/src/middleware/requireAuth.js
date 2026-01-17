@@ -1,36 +1,48 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import HttpError from "../utils/HttpError.js";
+
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 
 const requireAuth = async (req, res, next) => {
-    const authorization = req.headers.authorization;
-
-    if (!authorization) {
-        return res.status(401).json({ error: 'Authorization token required' });
-    }
-
-    const token = authorization.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ error: 'Authorization token required' });
-    }
-
     try {
-        const { _id } = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const authHeader = req.headers.authorization;
 
-        const user = await User.findById(_id).select('_id');
+        if (!authHeader) {
+            return next(new HttpError(401, "Authorization token required", "UNAUTHORIZED"));
+        }
 
+        // Expect: "Bearer <token>"
+        const [scheme, token] = authHeader.split(" ");
+
+        if (!scheme || scheme.toLowerCase() !== "bearer" || !token) {
+            return next(new HttpError(401, "Authorization header must be: Bearer <token>", "UNAUTHORIZED"));
+        }
+
+        if (!JWT_ACCESS_SECRET) {
+            return next(new HttpError(500, "Server misconfiguration: JWT_ACCESS_SECRET is missing", "INTERNAL_ERROR"));
+        }
+
+        const payload = jwt.verify(token, JWT_ACCESS_SECRET);
+        const userId = payload._id;
+
+        if (!userId) {
+            return next(new HttpError(401, "Invalid token payload", "UNAUTHORIZED"));
+        }
+
+        const user = await User.findById(userId).select("_id");
         if (!user) {
-            return res.status(401).json({ error: 'User not found. Request unauthorized.' });
+            return next(new HttpError(401, "User not found", "UNAUTHORIZED"));
         }
 
         req.user = user;
-        next();
-
-    } catch (error) {
-        console.error('JWT verification failed:', error.message);
-        res.status(401).json({ error: 'Request is not authorized' });
+        return next();
+    } catch (e) {
+        const err = new HttpError(401, "Request is not authorized", "UNAUTHORIZED");
+        // hint for server-side logs/debugging:
+        err.meta = { jwtError: e?.name };
+        return next(err);
     }
 };
 
 export default requireAuth;
-

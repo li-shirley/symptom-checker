@@ -5,24 +5,22 @@ import guestRateLimiter from "../middleware/guestRateLimiter.js";
 import authRateLimiter from "../middleware/authRateLimiter.js";
 import requireAuth from '../middleware/requireAuth.js';
 
-const router = express.Router()
+const router = express.Router();
 
-// PUBLIC ENDPOINTS
-
+// Public Endpoints
 // signup user
-router.post('/signup', guestRateLimiter, signupUser)
+router.post('/signup', guestRateLimiter, signupUser);
 // login user
-router.post('/login', guestRateLimiter, loginUser)
+router.post('/login', guestRateLimiter, loginUser);
 // refresh token
 router.post('/refresh', guestRateLimiter, refreshAccessToken);
 // logout user
 router.post('/logout', guestRateLimiter, logoutUser);
 
 
-router.use(requireAuth)
+router.use(requireAuth);
 
-// PROTECTED ENDPOINTS
-
+// Protected Endpoints
 // delete user 
 router.delete('/', authRateLimiter, deleteUser);
 // change password

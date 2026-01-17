@@ -1,21 +1,19 @@
 import { guestRatelimit } from "../config/upstash.js";
+import HttpError from "../utils/HttpError.js";
 
 const guestRateLimiter = async (req, res, next) => {
     try {
-        const key = req.ip; // IP-based for login/signup
+        const key = req.ip; // IP-based for guest routes
 
         const { success } = await guestRatelimit.limit(key);
 
-        if (!success) {
-            return res.status(429).json({
-                error: "Too many requests, please try again later."
-            });
-        }
+        if (!success) return next(new HttpError(429, "Too many requests, please try again later.", "RATE_LIMITED"));
 
-        next();
-    } catch (error) {
-        console.error("Rate limit error:", error);
-        next(error);
+        return next();
+    } catch (e) {
+        const err = new HttpError(500, "Rate limit error", "INTERNAL_ERROR");
+        err.meta = { original: e?.message };
+        return next(err);
     }
 };
 

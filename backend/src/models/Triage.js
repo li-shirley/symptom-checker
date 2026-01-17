@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const TriageSchema = new mongoose.Schema(
+const triageSchema = new mongoose.Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -10,16 +10,17 @@ const TriageSchema = new mongoose.Schema(
 
         diagnosisCommon: {
             type: String,
-            required: true,
+            required: false,
         },
 
         diagnosisMedical: {
             type: String,
-            required: false,
+            required: true,
         },
 
         probability: {
             type: Number, // decimal to represent percentage
+            required: true,
             min: 0,
             max: 1,
         },
@@ -32,10 +33,14 @@ const TriageSchema = new mongoose.Schema(
         notes: {
             type: String,
             default: "",
-        },
+            maxlength: 5000, 
+            trim: true,
+        }
 
     },
-    { timestamps: true }   // adds createdAt & updatedAt
+    { timestamps: true }
 );
 
-export default mongoose.model("Triage", TriageSchema);
+triageSchema.index({ userId: 1, createdAt: -1 });
+
+export default mongoose.model("Triage", triageSchema);

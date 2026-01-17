@@ -1,29 +1,28 @@
 import { authRatelimit } from "../config/upstash.js";
+import HttpError from "../utils/HttpError.js";
 
 const authRateLimiter = async (req, res, next) => {
     try {
-        if (!req.user?._id) {
-            return res.status(401).json({ error: "Unauthorized" });
+        const userId = req.user?._id?.toString();
+
+        if (!userId) {
+            return next(new HttpError(401, "Request is not authorized", "UNAUTHORIZED"));
         }
 
-        const userId = req.user?._id?.toString();
         const ip = req.ip;
-
-        // Combine userId and IP for extra security if token leaks
-        const key = `${userId}:${ip}`;
+        const key = `${userId}:${ip}`; // user ID and IP for authenticated routes
 
         const { success } = await authRatelimit.limit(key);
 
         if (!success) {
-            return res.status(429).json({
-                error: "Too many requests, please try again later."
-            });
+            return next(new HttpError(429, "Too many requests, please try again later.", "RATE_LIMITED"));
         }
 
-        next();
-    } catch (error) {
-        console.error("Rate limit error:", error);
-        next(error);
+        return next();
+    } catch (e) {
+        const err = new HttpError(500, "Rate limiter failed", "INTERNAL_ERROR");
+        err.meta = { message: e?.message };
+        return next(err);
     }
 };
 
