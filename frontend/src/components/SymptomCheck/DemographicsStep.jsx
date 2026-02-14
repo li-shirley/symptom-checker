@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useSymptomCheckContext } from "../../hooks/useSymptomCheckContext";
 import { useAuthContext } from "../../hooks/useAuthContext";
 
@@ -8,7 +8,7 @@ const DemographicsStep = () => {
 
     // Local form state
     const [ageInput, setAgeInput] = useState(state.age || user?.age || "");
-    const [sexInput, setSexInput] = useState(state.sex || user?.sex || "");
+    const [sexInput, setSexInput] = useState(state.sex || "");
 
     const [height, setHeight] = useState("");
     const [weight, setWeight] = useState("");
@@ -22,7 +22,7 @@ const DemographicsStep = () => {
 
         const num = Number(ageInput);
         if (!ageInput) newErrors.age = "Age is required.";
-        else if (!Number.isInteger(num)) newErrors.age = "Age must be a whole number.";
+        else if (!/^\d+$/.test(num)) newErrors.age = "Age must be a whole number.";
         else if (num <= 0) newErrors.age = "Age must be greater than 0.";
         else if (num > 120) newErrors.age = "Age exceeds max allowed (120).";
 
@@ -33,20 +33,29 @@ const DemographicsStep = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    // BMI calculation (synchronous)
+    // BMI calculation
     const calculateBmiEvidence = () => {
-        if (!height || !weight) return [];
+        const h = Number(height);
+        const w = Number(weight);
+
+        // Require valid positive numbers
+        if (!Number.isFinite(h) || !Number.isFinite(w) || h <= 0 || w <= 0) {
+            return [];
+        }
 
         // Convert to metric
-        let heightCm = Number(height);
-        let weightKg = Number(weight);
+        let heightCm = heightUnit === "in" ? h * 2.54 : h;
+        let weightKg = weightUnit === "lb" ? w * 0.453592 : w;
 
-        if (heightUnit === "in") heightCm = heightCm * 2.54;
-        if (weightUnit === "lb") weightKg = weightKg * 0.453592;
+        // Final safety check
+        if (heightCm <= 0 || weightKg <= 0) return [];
 
-        const bmi = weightKg / ((heightCm / 100) ** 2);
+        const bmi = weightKg / Math.pow(heightCm / 100, 2);
         const bmiEvidence = [];
 
+        if (!Number.isFinite(bmi)) return [];
+
+        // Infermedica evidence IDs for BMI (verified in testing & docs)
         if (bmi < 19) {
             bmiEvidence.push({ id: "p_6", choice_id: "present" }); // low BMI
         } else if (bmi > 30) {
@@ -89,6 +98,8 @@ const DemographicsStep = () => {
                 </label>
                 <input
                     type="number"
+                    step="1"
+                    inputMode="numeric"
                     value={ageInput}
                     min={1}
                     onChange={(e) => setAgeInput(e.target.value)}
@@ -96,7 +107,7 @@ const DemographicsStep = () => {
                     placeholder="Enter your age"
                 />
                 {errors.age && (
-                    <span className="label-text-alt text-error">{errors.age}</span>
+                    <span className="label-text-alt text-red-500">{errors.age}</span>
                 )}
             </div>
 
@@ -106,7 +117,7 @@ const DemographicsStep = () => {
                     Sex assigned at birth
                 </label>
                 <span className="text-sm text-gray-500 block mb-2">
-                    For the symptom checker only. If you indentify as transgender, intersex, or non-binary, please select the option that best matches your biological sex.
+                    For the symptom checker only. If you identify as transgender, intersex, or non-binary, please select the option that best matches your biological sex.
                 </span>
                 <select
                     value={sexInput}
@@ -118,9 +129,10 @@ const DemographicsStep = () => {
                     <option value="female">Female</option>
                 </select>
                 {errors.sex && (
-                    <span className="label-text-alt text-error">{errors.sex}</span>
+                    <span className="label-text-alt text-red-500">{errors.sex}</span>
                 )}
             </div>
+            
 
             {/* Height Input with unit */}
             <div>

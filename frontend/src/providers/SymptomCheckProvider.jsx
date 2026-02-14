@@ -2,13 +2,13 @@ import { useReducer } from "react";
 import { SymptomCheckContext } from "../contexts/SymptomCheckContext";
 import {
     symptomCheckReducer,
-    initialState,
+    INITIAL_STATE,
 } from "../reducers/symptomCheckReducer";
 
 const SymptomCheckProvider = ({ children }) => {
     const [state, dispatch] = useReducer(
         symptomCheckReducer,
-        initialState
+        INITIAL_STATE
     );
 
     return (

@@ -1,6 +1,6 @@
 
 
-export const initialState = {
+export const INITIAL_STATE = {
     // for testing only
     questionIndex: 0,
 
@@ -24,7 +24,7 @@ export const initialState = {
 };
 
 const logAction = (action, state) => {
-    console.groupCollapsed(`🧠 SymptomCheck Action: ${action.type}`);
+    console.groupCollapsed(`SymptomCheck Action: ${action.type}`);
     console.log("Payload:", action.payload);
     console.log("Prev State:", state);
     console.groupEnd();
@@ -34,23 +34,23 @@ export function symptomCheckReducer(state, action) {
     if (import.meta.env.DEV) logAction(action, state);
 
     switch (action.type) {
-        // for testing only
+        // for mock data testing only
         case "SET_QUESTION_INDEX":
             return { ...state, questionIndex: action.payload };
 
         // flow control
         case "SET_STEP":
-            return { ...state, step: action.payload, error: null  };
+            return { ...state, step: action.payload, error: null };
 
         case "RESET":
-            return { ...initialState };
+            return { ...INITIAL_STATE };
 
         // demographics
         case "SET_DEMOGRAPHICS":
             return {
                 ...state,
                 ...action.payload
-            };;
+            };
 
         // questions -> diagnosis
         case "SET_QUESTION":
@@ -60,7 +60,7 @@ export function symptomCheckReducer(state, action) {
             return { ...state, broadConditions: action.payload };
 
         case "SET_RESULTS":
-            return { ...state, results: action.payload, step: "results", loading: false };
+            return { ...state, results: action.payload, loading: false };
 
         // follow-up handling
         case "SET_INTERVIEW_TOKEN":
@@ -69,26 +69,31 @@ export function symptomCheckReducer(state, action) {
         case "ADD_EVIDENCE":
             // if id exists, update choice_id; otherwise append
             {
-                const evidenceExists = state.evidence.findIndex(e => e.id === action.payload.id);
-                let updatedEvidence;
-                if (evidenceExists > -1) {
-                    updatedEvidence = state.evidence.map(e =>
-                        e.id === action.payload.id ? { ...e, choice_id: action.payload.choice_id } : e
-                    );
-                } else {
-                    updatedEvidence = [...state.evidence, action.payload];
-                }
-                return { ...state, evidence: updatedEvidence };
+                const incoming = action.payload;
+                const exists = state.evidence.some((e) => e.id === incoming.id);
+
+                const evidence = exists
+                    ? state.evidence.map((e) =>
+                        e.id === incoming.id ? { ...e, choice_id: incoming.choice_id } : e
+                    )
+                    : [...state.evidence, incoming];
+
+                return { ...state, evidence };
             }
 
-        // async page state
-        case "LOADING":
-            return { ...state, loading: true };
-        case "LOADED":
-            return { ...state, loading: false };
+        case "REMOVE_EVIDENCE": {
+            const id = action.payload;
+            return {
+                ...state,
+                evidence: state.evidence.filter((e) => e.id !== id),
+            };
+        }
 
-        case "ERROR":
-            return { ...state, loading: false, error: action.payload };
+        // async page state
+        case "SET_LOADING":
+            return { ...state, loading: action.payload };
+        case "SET_ERROR":
+            return { ...state, error: action.payload };
 
         default:
             return state;

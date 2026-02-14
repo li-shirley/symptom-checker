@@ -1,55 +1,53 @@
 import { useSymptomCheckContext } from "./useSymptomCheckContext";
+import { useAuthContext } from "../hooks/useAuthContext";
 import { apiRequest } from "../utils/api";
+
 import questionData from "../data/question.json";
 import symptomsData from "../data/symptoms.json";
 
-export const USE_MOCK_DATA = true;
+export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === "true";
+const questions = questionData[0]
 
 export const useSymptomCheckActions = () => {
     const { state, dispatch } = useSymptomCheckContext();
+    const { user, refreshAccessToken } = useAuthContext();
+    const accessToken = user?.token;
 
-    const buildAgePayload = (age) => ({ value: Number(age), unit: "year" });
+    const auth = { accessToken, refreshAccessToken };
 
     // Load symptom suggestions
     const loadSymptoms = async () => {
         if (!state.age) throw new Error("Age is required to fetch symptoms");
 
         if (USE_MOCK_DATA) {
-            return symptomsData.map(s => ({
-                value: s.id,
-                label: s.common_name || s.name,
-            }));
+            return symptomsData.map((s) => ({ value: s.id, label: s.name }));
         }
 
-        const query = new URLSearchParams({
-            age: state.age.toString(),
-            ...(state.sex ? { sex: state.sex } : {}),
-        });
+        const query = new URLSearchParams({ age: state.age.toString() });
 
-        const res = await apiRequest(`/api/infermedica/symptoms?${query.toString()}`);
+        const res = await apiRequest(
+            `/api/infermedica/symptoms?${query.toString()}`, 
+            {},
+            auth
+        );
 
-        if (!res.success) {
-            throw new Error(res.data.error || "Failed to load symptoms");
+        if (!res.ok) {
+            throw new Error(res.error?.message || "Failed to load symptoms");
         }
 
-        return res.data.map(s => ({
-            value: s.id,
-            label: s.common_name || s.name,
-        }));
+        return (res.data ?? []).map((s) => ({ value: s.id, label: s.name }));
     };
 
     // Submit initial diagnosis (returns next question + conditions)
     const submitInitialDiagnosis = async () => {
         const payload = {
-            age: buildAgePayload(state.age),
+            age: state.age,
             sex: state.sex,
             evidence: state.evidence,
         };
 
         if (USE_MOCK_DATA) {
-            console.log("📝 [MOCK] POST /diagnosis (initial) payload:", payload);
-
-            const entry = questionData[0][0];
+            const entry = questions[0];
             dispatch({ type: "SET_QUESTION_INDEX", payload: 0 });
 
             return {
@@ -59,19 +57,20 @@ export const useSymptomCheckActions = () => {
             };
         }
 
-        const response = await apiRequest("/api/infermedica/diagnosis", {
-            method: "POST",
-            body: payload,
-        });
+        const res = await apiRequest(
+            "/api/infermedica/diagnosis", 
+            { method: "POST", body: payload }, 
+            auth
+        );
 
-        if (!response.success) {
-            throw new Error(response.data.error);
+        if (!res.ok) {
+            throw new Error(res.error?.message || "Failed to submit diagnosis");
         }
 
         return {
-            question: response.data.question,
-            conditions: response.data.conditions,
-            interviewToken: response.data.interview_token
+            question: res.data?.question,
+            conditions: res.data?.conditions,
+            interviewToken: res.data?.interview_token,
         };
     };
 
@@ -83,19 +82,17 @@ export const useSymptomCheckActions = () => {
         ];
 
         const payload = {
-            "age": buildAgePayload(state.age),
-            "sex": state.sex,
-            "evidence": updatedEvidenceArr,
+            age: state.age,
+            sex: state.sex,
+            evidence: updatedEvidenceArr,
             interview_token: state.interviewToken,
         };
 
         if (USE_MOCK_DATA) {
-            console.log("📝 [MOCK] POST /diagnosis (follow-up) payload:", payload);
-
             const currentIndex = state.questionIndex;
             const nextIndex = currentIndex + 1;
 
-            const entry = questionData[0][nextIndex];
+            const entry = questions[nextIndex];
             dispatch({ type: "ADD_EVIDENCE", payload: newEvidence });
             dispatch({ type: "SET_QUESTION_INDEX", payload: nextIndex });
 
@@ -107,20 +104,23 @@ export const useSymptomCheckActions = () => {
             };
         }
 
-        const res = await apiRequest("/api/infermedica/diagnosis", {
-            method: "POST",
-            body: payload,
-        });
+        const res = await apiRequest(
+            "/api/infermedica/diagnosis", 
+            { method: "POST", body: payload }, 
+            auth
+        );
 
-        if (!res.success) throw new Error(res.data.error);
+        if (!res.ok) {
+            throw new Error(res.error?.message || "Failed to submit follow-up diagnosis");
+        }
 
         dispatch({ type: "ADD_EVIDENCE", payload: newEvidence });
 
         return {
-            question: res.data.question,
-            conditions: res.data.conditions,
-            should_stop: res.data.should_stop,
-            has_emergency_evidence: res.data.has_emergency_evidence,
+            question: res.data?.question,
+            conditions: res.data?.conditions,
+            should_stop: res.data?.should_stop,
+            has_emergency_evidence: res.data?.has_emergency_evidence,
         };
     };
 

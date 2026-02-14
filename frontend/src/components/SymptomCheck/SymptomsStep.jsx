@@ -1,10 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { ReactTags } from "react-tag-autocomplete";
 
 import { useSymptomCheckContext } from "../../hooks/useSymptomCheckContext";
 import { useSymptomCheckActions } from "../../hooks/useSymptomCheckActions";
 
+const CustomTag = ({ tag, classNames, ...tagProps }) => (
+    <button type="button" {...tagProps} className={`${classNames.tag} flex items-center gap-1 focus:outline-none`}>
+        <span className={classNames.tagName}>{tag.label}</span>
+        <span aria-hidden className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-primary-content hover:bg-primary-content/20">
+            <X size={12} strokeWidth={2} />
+        </span>
+    </button>
+);
 
 const SymptomsStep = () => {
     const { state, dispatch } = useSymptomCheckContext();
@@ -15,39 +23,43 @@ const SymptomsStep = () => {
     const [localSymptoms, setLocalSymptoms] = useState([]);
 
     const didFetchRef = useRef(false);
-    const reactTags = useRef();
 
     // load symptoms suggestions
     useEffect(() => {
         if (state.step !== "symptoms") return;
         if (didFetchRef.current) return;
-
         didFetchRef.current = true;
 
         const fetch = async () => {
-            dispatch({ type: "LOADING" });
+            dispatch({ type: "SET_LOADING", payload: true });
 
             try {
                 const loaded = await loadSymptoms();
-                setSuggestions(loaded || []);
+                setSuggestions(Array.isArray(loaded) ? loaded : []);
             } catch (err) {
-                console.log("Loading symptoms error: " + err);
-                dispatch({ type: "ERROR", payload: "Failed to load symptoms" });
+                if (import.meta.env.DEV) {
+                    console.warn("Loading symptoms failed:", err);
+                }
+                dispatch({ type: "SET_ERROR", payload: "Failed to load symptoms" });
             } finally {
-                dispatch({ type: "LOADED" });
+                dispatch({ type: "SET_LOADING", payload: false });
             }
         };
 
         fetch();
     }, [state.step, loadSymptoms, dispatch]);
 
-
     // filter symptom suggestions to exclude selected tags
-    const visibleSuggestions = suggestions.filter(s => {
-        const alreadySelected = localSymptoms.some(sel => sel.value === s.value);
-        const matchesQuery = s.label.toLowerCase().includes(query.toLowerCase());
-        return !alreadySelected && matchesQuery;
-    });
+    const visibleSuggestions = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        const selected = new Set(localSymptoms.map((s) => s.value));
+
+        return suggestions.filter((s) => {
+            if (selected.has(s.value)) return false;
+            if (!q) return true;
+            return s.label.toLowerCase().includes(q);
+        });
+    }, [suggestions, localSymptoms, query]);
 
     // Add symptom to local state and evidence to global state
     const onAdd = (symptom) => {
@@ -55,19 +67,25 @@ const SymptomsStep = () => {
 
         dispatch({
             type: "ADD_EVIDENCE",
-            payload: { id: symptom.value, choice_id: "present", source: "initial" }
+            payload: {
+                id: symptom.value,
+                choice_id: "present",
+                source: "initial",
+                name: symptom.label
+            }
         });
     };
 
     // Remove symptom from local state and evidence from global state
     const onDelete = (index) => {
         const removed = localSymptoms[index];
+        if (!removed) return; // guard against non-existent index (fast clicking, lag, etc)
 
         setLocalSymptoms(prev => prev.filter((_, i) => i !== index));
 
         dispatch({
             type: "REMOVE_EVIDENCE",
-            payload: removed.value
+            payload: removed.value // id
         });
     };
 
@@ -75,9 +93,10 @@ const SymptomsStep = () => {
     const handleNext = async () => {
         if (!localSymptoms.length || state.loading) return;
 
-        try {
-            dispatch({ type: "LOADING" });
+        dispatch({ type: "SET_LOADING", payload: true });
+        dispatch({ type: "SET_ERROR", payload: null });
 
+        try {
             const result = await submitInitialDiagnosis();
 
             dispatch({ type: "SET_QUESTION", payload: result.question });
@@ -86,20 +105,11 @@ const SymptomsStep = () => {
 
             dispatch({ type: "SET_STEP", payload: "questions" }); // go to next step
         } catch (err) {
-            dispatch({ type: "ERROR", payload: err.message || "Failed to submit symptoms" });
+            dispatch({ type: "SET_ERROR", payload: err?.message || "Failed to submit symptoms" });
         } finally {
-            dispatch({ type: "LOADED" });
+            dispatch({ type: "SET_LOADING", payload: false });
         }
     };
-
-    const CustomTag = ({ tag, classNames, ...tagProps }) => (
-        <button type="button" {...tagProps} className={`${classNames.tag} flex items-center gap-1 focus:outline-none`}>
-            <span className={classNames.tagName}>{tag.label}</span>
-            <span aria-hidden className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-primary-content hover:bg-primary-content/20">
-                <X size={12} strokeWidth={2} />
-            </span>
-        </button>
-    );
 
     return (
         <div className="space-y-6">
@@ -107,12 +117,11 @@ const SymptomsStep = () => {
             <p className="text-center text-sm text-gray-500">Please select at least one symptom. Selecting more will help us provide a more accurate assessment.</p>
 
             {state.error && (
-                <div className="text-center text-error mb-2">{state.error}</div>
+                <div className="text-center text-red-500 mb-2">{state.error}</div>
             )}
 
             <div className="border border-base-300 rounded-lg p-2 bg-base-100 w-full">
                 <ReactTags
-                    ref={reactTags}
                     selected={localSymptoms}
                     suggestions={visibleSuggestions}
                     onAdd={onAdd}

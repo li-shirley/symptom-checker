@@ -1,8 +1,9 @@
-import React from "react";
 import { useSymptomCheckContext } from "../../hooks/useSymptomCheckContext";
 
 const IntroStep = () => {
     const { dispatch } = useSymptomCheckContext();
+
+    const goNext = () => dispatch({ type: "SET_STEP", payload: "disclaimer" });
 
     return (
         <div className="space-y-6 text-center">
@@ -30,11 +31,8 @@ const IntroStep = () => {
 
             {/* CTA */}
             <div className="pt-4">
-                <button
-                    className="btn btn-primary btn-wide"
-                    onClick={() => dispatch({ type: "SET_STEP", payload: "disclaimer" })}
-                >
-                    Start symptom check
+                <button className="btn btn-primary btn-wide" onClick={goNext}> 
+                    Start symptom check 
                 </button>
             </div>
         </div>

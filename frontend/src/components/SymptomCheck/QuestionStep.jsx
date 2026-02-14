@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSymptomCheckContext } from "../../hooks/useSymptomCheckContext";
 import { useSymptomCheckActions } from "../../hooks/useSymptomCheckActions";
 
@@ -8,41 +8,91 @@ const QuestionStep = () => {
 
     const [selectedChoice, setSelectedChoice] = useState(null);
 
-    if (!state.question) return <div>Loading question...</div>;
+    // Reset selection when a new question arrives
+    useEffect(() => {
+        setSelectedChoice(null);
+    }, [state.question?.text]);
 
-    const questionItem = state.question.items[0];
-    const hasInstructions = state.question.instruction?.length > 0;
+    // Part of returned question json that has symptom id, name, and applicable answers
+    const questionItem = state.question?.items?.[0] ?? null;
+
+    // Infermedica-provided instructions on how to determine is symptom is present (sometimes applicable).
+    const hasInstructions =
+        Array.isArray(state.question?.instruction) && state.question.instruction.length > 0;
+
+    if (!state.question) {
+        return (
+            <div className="p-8 flex items-center justify-center gap-3">
+                <span className="loading loading-spinner loading-md text-primary" />
+                <p className="text-sm opacity-70">Loading question...</p>
+            </div>
+        );
+    }
+
+    // If question is malformed, fail (don’t crash)
+    if (!questionItem || !Array.isArray(questionItem.choices)) {
+        return (
+            <div className="p-4">
+                <p className="text-red-500 text-center">
+                    Sorry — we couldn’t load the next question. Please restart the symptom check.
+                </p>
+            </div>
+        );
+    }
 
     const handleNext = async () => {
         if (!selectedChoice || state.loading) return;
+        dispatch({ type: "SET_LOADING", payload: true });
+        dispatch({ type: "SET_ERROR", payload: null });
 
         try {
-            dispatch({ type: "LOADING" });
-
             const result = await submitFollowupDiagnosis({
                 id: questionItem.id,
-                choice_id: selectedChoice
+                choice_id: selectedChoice,
+                name: questionItem.name
             });
 
+            if (!result) {
+                dispatch({ type: "SET_ERROR", payload: "No response from diagnosis service." });
+                return;
+            }
+
             // Emergency symptom detected
-            if (result.has_emergency_evidence) {
+            if (result?.has_emergency_evidence === true) {
                 dispatch({
                     type: "SET_RESULTS",
                     payload: {
                         emergency: true,
-                        conditions: result.conditions,
+                        conditions: result.conditions ?? []
                     },
                 });
                 dispatch({ type: "SET_STEP", payload: "results" });
                 return;
             }
+
             // Reached a result diagnosis
-            if (result.should_stop) {
+            if (result?.should_stop === true) {
+                const topCondition = Array.isArray(result.conditions) ? result.conditions[0] : null;
+
                 dispatch({
                     type: "SET_RESULTS",
                     payload: {
                         should_stop: true,
-                        topCondition: result.conditions?.[0],
+                        topCondition: topCondition,
+                        conditions: result.conditions ?? [],
+                    },
+                });
+                dispatch({ type: "SET_STEP", payload: "results" });
+                return;
+            }
+
+            // Dead-end: no next question returned from API
+            if (!result.question) {
+                dispatch({
+                    type: "SET_RESULTS",
+                    payload: {
+                        noDiagnosis: true,
+                        conditions: result.conditions ?? [],
                     },
                 });
                 dispatch({ type: "SET_STEP", payload: "results" });
@@ -51,13 +101,16 @@ const QuestionStep = () => {
 
             // Needs further questioning / continute to next follow-up question
             dispatch({ type: "SET_QUESTION", payload: result.question });
-            dispatch({ type: "SET_BROAD_CONDITIONS", payload: result.conditions });
+            dispatch({ type: "SET_BROAD_CONDITIONS", payload: result.conditions ?? [] });
 
         } catch (err) {
-            console.error("Error submitting follow-up diagnosis:", err);
+            if (import.meta.env.DEV) console.warn("Follow-up diagnosis failed:", err);
+            dispatch({
+                type: "SET_ERROR",
+                payload: err?.message || "Failed to submit your answer",
+            });
         } finally {
-            dispatch({ type: "LOADED" });
-            setSelectedChoice(null);
+            dispatch({ type: "SET_LOADING", payload: false });
         }
     };
 
