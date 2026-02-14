@@ -1,10 +1,10 @@
 import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
-import { useLogin } from "../hooks/useLoginActions"
 import { Link } from "react-router-dom"
+import { useAuthActions } from "../hooks/useAuthActions";
 
 const LoginPage = () => {
-    const { login, isLoading, error: apiError } = useLogin()
+    const { login, loginLoading, loginError } = useAuthActions();
 
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -31,7 +31,7 @@ const LoginPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (isLoading) return
+        if (loginLoading) return
 
         const values = { email, password }
 
@@ -65,7 +65,7 @@ const LoginPage = () => {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                         {errors.email && (
-                            <span className="label-text-alt text-error">{errors.email}</span>
+                            <span className="label-text-alt text-red-500">{errors.email}</span>
                         )}
                     </div>
 
@@ -96,21 +96,23 @@ const LoginPage = () => {
                         </div>
 
                         {errors.password && (
-                            <span className="label-text-alt text-error">{errors.password}</span>
+                            <span className="label-text-alt text-red-500">{errors.password}</span>
                         )}
                     </div>
 
                     {/* API error */}
-                    {apiError && (
-                        <span className="label-text-alt text-error block text-center">{apiError}</span>
+                    {loginError?.message && (
+                        <div className="text-center">
+                            <span className="label-text-alt text-red-500 block">{loginError.message}</span>
+                        </div>
                     )}
 
                     <button
                         type="submit"
-                        className={`btn btn-primary w-full ${isLoading ? "loading" : ""}`}
-                        disabled={isLoading}
+                        className={`btn btn-primary w-full ${loginLoading ? "loading" : ""}`}
+                        disabled={loginLoading}
                     >
-                        {isLoading ? "Logging in..." : "Login"}
+                        {loginLoading ? "Logging in..." : "Login"}
                     </button>
                 </form>
 

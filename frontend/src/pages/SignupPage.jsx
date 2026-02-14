@@ -2,20 +2,18 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff } from "lucide-react"
 
-import { useSignup } from '../hooks/useSignupActions'
+import { useAuthActions } from "../hooks/useAuthActions";
 
 const SignUpPage = () => {
-    const { signup, isLoading, error: apiError } = useSignup();
+    const { signup, signupLoading, signupError } = useAuthActions();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [birthDate, setBirthDate] = useState('');
-    const [sex, setSex] = useState('');
     const [errors, setErrors] = useState({
         email: '',
         password: '',
         birthDate: '',
-        sex: ''
     });
     const [showPassword, setShowPassword] = useState(false)
 
@@ -38,12 +36,12 @@ const SignUpPage = () => {
     }
 
     const validateBirthDate = (value) => {
-        if (!value) return 'Birth date is required';
+        if (!value) return 'Date of birth is required';
 
         const birth = new Date(value);
         const today = new Date();
 
-        if (birth > today) return 'Birth date cannot be in the future';
+        if (birth > today) return 'Date of birth cannot be in the future';
 
         let age = today.getFullYear() - birth.getFullYear();
         const m = today.getMonth() - birth.getMonth();
@@ -55,24 +53,17 @@ const SignUpPage = () => {
         return '';
     };
 
-    const validateSex = (value) => {
-        if (!value) return 'Sex is required';
-        if (!['male', 'female'].includes(value.toLowerCase())) return 'Invalid sex value';
-        return '';
-    }
-
     const validators = {
         email: validateEmail,
         password: validatePassword,
         birthDate: validateBirthDate,
-        sex: validateSex,
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isLoading) return;
+        if (signupLoading) return;
 
-        const values = { email, password, birthDate, sex };
+        const values = { email, password, birthDate };
 
         const newErrors = Object.fromEntries(
             Object.entries(validators).map(([key, validator]) => [
@@ -85,7 +76,7 @@ const SignUpPage = () => {
 
         if (Object.values(newErrors).some(Boolean)) return;
 
-        await signup(email, password, birthDate, sex.toLowerCase());
+        await signup(email, password, birthDate);
     };
 
     return (
@@ -107,7 +98,7 @@ const SignUpPage = () => {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                         {errors.email && (
-                            <span className="label-text-alt text-error">{errors.email}</span>
+                            <span className="label-text-alt text-red-500">{errors.email}</span>
                         )}
                     </div>
 
@@ -140,7 +131,7 @@ const SignUpPage = () => {
                         </div>
 
                         {errors.password && (
-                            <span className="label-text-alt text-error">
+                            <span className="label-text-alt text-red-500">
                                 {errors.password}
                             </span>
                         )}
@@ -149,7 +140,7 @@ const SignUpPage = () => {
                     {/* Birth Date */}
                     <div>
                         <label className="label">
-                            <span className="label-text">Birth Date</span>
+                            <span className="label-text">Date of birth</span>
                         </label>
                         <input
                             type="date"
@@ -159,40 +150,23 @@ const SignUpPage = () => {
                             onChange={(e) => setBirthDate(e.target.value)}
                         />
                         {errors.birthDate && (
-                            <span className="label-text-alt text-error">{errors.birthDate}</span>
-                        )}
-                    </div>
-
-                    {/* Sex */}
-                    <div>
-                        <label className="label">
-                            <span className="label-text">Sex (assigned at birth)</span>
-                        </label>
-                        <select
-                            className={`select select-bordered w-full ${errors.sex ? 'select-error' : ''}`}
-                            value={sex}
-                            onChange={(e) => setSex(e.target.value)}
-                        >
-                            <option value="">Select sex</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                        </select>
-                        {errors.sex && (
-                            <span className="label-text-alt text-error">{errors.sex}</span>
+                            <span className="label-text-alt text-red-500">{errors.birthDate}</span>
                         )}
                     </div>
 
                     {/* API error above submit button */}
-                    {apiError && (
-                        <span className="label-text-alt text-error block text-center">{apiError}</span>
+                    {signupError?.message && (
+                        <div className="text-center">
+                            <span className="label-text-alt text-red-500 block">{signupError.message}</span>
+                        </div>
                     )}
 
                     <button
                         type="submit"
-                        className={`btn btn-primary w-full ${isLoading ? 'loading' : ''}`}
-                        disabled={isLoading}
+                        className={`btn btn-primary w-full ${signupLoading ? 'loading' : ''}`}
+                        disabled={signupLoading}
                     >
-                        {isLoading ? 'Signing up...' : 'Sign Up'}
+                        {signupLoading ? 'Signing up...' : 'Sign Up'}
                     </button>
                 </form>
 
