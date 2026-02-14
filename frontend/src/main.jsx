@@ -12,8 +12,8 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthContextProvider>
+        <Toaster position="top-center" toastOptions={{ duration: 3500 }} />
         <SymptomCheckProvider>
-          <Toaster />
           <App />
         </SymptomCheckProvider>
       </AuthContextProvider>
